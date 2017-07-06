@@ -18,7 +18,7 @@ fun guess(perceptron: Perceptron, inputs: Array<Float>): Int
 fun correct(perceptron: Perceptron, trainingData: Array<Float>, error: Int, learningRate: Float): Perceptron
 {
 	val adjustedWeights: Array<Double> = trainingData.indices.asSequence()
-			.map { perceptron[it] + trainingData[it] * error * learningRate}
+			.map { perceptron[it] + trainingData[it] * error * learningRate }
 			.toList()
 			.toTypedArray()
 
