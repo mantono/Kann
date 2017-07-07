@@ -30,5 +30,5 @@ tailrec fun train(per: Perceptron, trainingData: Array<Float>, target: Int, lear
 	val guess: Int = guess(per, trainingData)
 	val error: Int = target - guess
 	val perceptron = correct(per, trainingData, error, learningRate)
-	return if(error == 0) perceptron else train(perceptron, trainingData, target)
+	return if(error == 0) per else train(perceptron, trainingData, target)
 }
