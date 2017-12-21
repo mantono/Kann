@@ -2,44 +2,39 @@ package com.mantono.kann.ga
 
 import com.mantono.kann.NetworkStructure
 
-data class NeuralNetwork(private val neurons: List<Neuron>, private val layers: List<Int>)
+data class NeuralNetwork(private val layers: MutableList<Int>,
+                         private val neurons: MutableList<Neuron> = ArrayList(layers.sum()))
 {
+	constructor(vararg layers: Int, neurons: MutableList<Neuron> = ArrayList(layers.sum())): this(layers.toMutableList(), neurons)
+
 	init
 	{
 		if(layers.sum() != neurons.size)
 			throw IllegalArgumentException("Size does not match ${layers.sum()} != ${neurons.size}")
 	}
 
-	constructor(): this(emptyList(), emptyList())
-
 	operator fun get(layer: Int, neuron: Int): Neuron
 	{
-		val index: Int = neuron + layers.take(layer).sum()
+		val index: Int = indexOf(layer, neuron)
 		return neurons[index]
 	}
 
-	operator fun set(layer: Int, neuron: Int, n: Neuron): NeuralNetwork
+	operator fun set(layer: Int, neuronInLayer: Int, neuron: Neuron)
 	{
-		val alteredLayers = layers.
-		alteredLayers[layer][neuron] = n
-		return NeuralNetwork(alteredLayers)
+		val index: Int = indexOf(layer, neuronInLayer)
+		neurons[index] = neuron
 	}
 
 	fun add(layer: Int, neuron: Neuron): NeuralNetwork
 	{
-		val alteredLayers: Array<Array<Neuron>> = layers.mapIndexed { index, arrayOfNeurons ->
-			when(index == layer)
-			{
-				true -> arrayOf(arrayOfNeurons + neuron)
-				false -> arrayOfNeurons
-			}
-		}
-				.toTypedArray() as Array<Array<Neuron>>
-
-		return NeuralNetwork(alteredLayers)
+		val index: Int = layers.take(layer + 1).sum() - 1
+		layers[layer]++
+		n
 	}
 
 	fun input(inputValues: Array<Double>) {}
+
+	private fun indexOf(layer: Int, neuronInLayer: Int): Int = layers.take(layer).sum() + neuronInLayer
 }
 
 private fun varargsToLayers(layers: List<Int>, init: (Int) -> Neuron): List<Neuron>
