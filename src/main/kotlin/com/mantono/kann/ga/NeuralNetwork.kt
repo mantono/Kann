@@ -1,43 +1,55 @@
 package com.mantono.kann.ga
 
-import com.mantono.kann.NetworkStructure
+import java.security.SecureRandom
 
-data class NeuralNetwork(private val layers: MutableList<Int>,
-                         private val neurons: MutableList<Neuron> = ArrayList(layers.sum()))
+data class NeuralNetwork(private val neurons: List<MutableList<Neuron>>)
 {
-	constructor(vararg layers: Int, neurons: MutableList<Neuron> = ArrayList(layers.sum())): this(layers.toMutableList(), neurons)
+	constructor(vararg layers: Int, seed: Long = generateSeed()): this(listOfLayers(layers, seed))
 
-	init
+	operator fun get(layer: Int): List<Neuron> = neurons[layer]
+	operator fun get(layer: Int, index: Int): Neuron = neurons[layer][index]
+	operator fun set(layer: Int, index: Int, neuron: Neuron)
 	{
-		if(layers.sum() != neurons.size)
-			throw IllegalArgumentException("Size does not match ${layers.sum()} != ${neurons.size}")
+		neurons[layer][index] = neuron
 	}
 
-	operator fun get(layer: Int, neuron: Int): Neuron
+	fun add(layer: Int, neuron: Neuron)
 	{
-		val index: Int = indexOf(layer, neuron)
-		return neurons[index]
+		neurons[layer].add(neuron)
 	}
 
-	operator fun set(layer: Int, neuronInLayer: Int, neuron: Neuron)
+	tailrec fun input(inputs: Array<Double>, layer: Int = 0): Array<Double>
 	{
-		val index: Int = indexOf(layer, neuronInLayer)
-		neurons[index] = neuron
+		if(layer > neurons.lastIndex)
+			return inputs
+
+		val output: Array<Double> = neurons[layer]
+				.map { it.feedInput(inputs) }
+				.toTypedArray()
+
+		return input(output, layer + 1)
 	}
-
-	fun add(layer: Int, neuron: Neuron): NeuralNetwork
-	{
-		val index: Int = layers.take(layer + 1).sum() - 1
-		layers[layer]++
-		n
-	}
-
-	fun input(inputValues: Array<Double>) {}
-
-	private fun indexOf(layer: Int, neuronInLayer: Int): Int = layers.take(layer).sum() + neuronInLayer
 }
 
-private fun varargsToLayers(layers: List<Int>, init: (Int) -> Neuron): List<Neuron>
+private fun listOfLayers(layers: IntArray, seed: Long): List<MutableList<Neuron>>
 {
-	return layers.sum()
+	return layers
+			.map { ArrayList<Neuron>(it) }
+			.mapIndexed { index, neurons ->
+				val neuronsInLayer: Int = layers[index]
+				for(n in 0..neuronsInLayer)
+				{
+					val weightsToNextLayer: Int = when(index)
+					{
+						layers.lastIndex -> 0
+						else -> layers[n+1]
+					}
+					neurons.add(Neuron(weightsToNextLayer))
+				}
+				neurons
+
+			}
+			.toList()
 }
+
+private fun generateSeed(): Long = SecureRandom().nextLong()
