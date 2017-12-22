@@ -2,7 +2,7 @@ package com.mantono.kann
 
 data class Perceptron(val weights: Array<Double>)
 {
-	constructor(numberOfWeights: Int):this(generateWeights(numberOfWeights))
+	constructor(numberOfWeights: Int):this(generateWeights(numberOfWeights, randomSeed()))
 	operator fun get(i: Int): Double = weights[i]
 }
 

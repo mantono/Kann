@@ -1,12 +1,18 @@
 package com.mantono.kann
 
 import java.security.SecureRandom
+import java.util.*
 
-val randomWeightSequence: Sequence<Double> = generateSequence {
-	SecureRandom().nextGaussian()
+fun randomWeightSequence(seed: Long): Sequence<Double> = generateSequence()
+{
+	Random(seed).nextGaussian()
 }
 
-fun generateWeights(numberOfWeights: Int): Array<Double> = randomWeightSequence
+fun generateWeights(numberOfWeights: Int, seed: Long): Array<Double> = randomWeightSequence(seed)
 			.take(numberOfWeights)
 			.toList()
 			.toTypedArray()
+
+fun gaussian(seed: Long): Double = randomWeightSequence(seed).first()
+
+fun randomSeed(): Long = SecureRandom().nextLong()

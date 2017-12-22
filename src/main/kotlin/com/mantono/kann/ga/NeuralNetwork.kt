@@ -39,12 +39,13 @@ private fun listOfLayers(layers: IntArray, seed: Long): List<MutableList<Neuron>
 				val neuronsInLayer: Int = layers[index]
 				for(n in 0..neuronsInLayer)
 				{
-					val weightsToNextLayer: Int = when(index)
+					val weightsToNextLayer: Int = when(n)
 					{
 						layers.lastIndex -> 0
 						else -> layers[n+1]
 					}
-					neurons.add(Neuron(weightsToNextLayer))
+					val individualSeed: Long = seed * 11 * (n + 1)
+					neurons.add(Neuron(weightsToNextLayer, individualSeed))
 				}
 				neurons
 
