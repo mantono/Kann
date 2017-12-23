@@ -1,8 +1,6 @@
 package com.mantono.kann.ga
 
-import com.mantono.kann.gaussian
-import com.mantono.kann.generateWeights
-import com.mantono.kann.randomSeed
+import com.mantono.kann.consume
 import com.mantono.kann.sigmoid
 
 data class Neuron(
@@ -13,16 +11,11 @@ data class Neuron(
 
 	constructor(
 			connections: Int,
-			weightRandomizationSeed: Long = randomSeed(),
-			bias: Double = gaussian(weightRandomizationSeed * 997),
+			weightGenerator: Sequence<Double>,
+			bias: Double = weightGenerator.first()/2,
 			function: (Double) -> Double = ::sigmoid
-	            ): this(generateWeights(connections, weightRandomizationSeed), bias, function)
+	            ): this(weightGenerator.consume(connections), bias, function)
 
-//	init
-//	{
-//		if(weights.isEmpty())
-//			throw IllegalArgumentException("Array for weights cannot be empty")
-//	}
 
 	fun feedInput(inputs: Array<Double>): Double
 	{

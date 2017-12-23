@@ -1,10 +1,11 @@
 package com.mantono.kann.ga
 
-import java.security.SecureRandom
+import com.mantono.kann.randomSequence
+import kotlin.math.max
 
 data class NeuralNetwork(private val neurons: List<MutableList<Neuron>>)
 {
-	constructor(vararg layers: Int, seed: Long = generateSeed()): this(listOfLayers(layers, seed))
+	constructor(vararg layers: Int, seed: Long): this(listOfLayers(layers, seed))
 
 	operator fun get(layer: Int): List<Neuron> = neurons[layer]
 	operator fun get(layer: Int, index: Int): Neuron = neurons[layer][index]
@@ -34,23 +35,11 @@ data class NeuralNetwork(private val neurons: List<MutableList<Neuron>>)
 private fun listOfLayers(layers: IntArray, seed: Long): List<MutableList<Neuron>>
 {
 	return layers
-			.map { ArrayList<Neuron>(it) }
-			.mapIndexed { index, neurons ->
-				val neuronsInLayer: Int = layers[index]
-				for(n in 0..neuronsInLayer)
-				{
-					val weightsToNextLayer: Int = when(n)
-					{
-						layers.lastIndex -> 0
-						else -> layers[n+1]
-					}
-					val individualSeed: Long = seed * 11 * (n + 1)
-					neurons.add(Neuron(weightsToNextLayer, individualSeed))
+			.mapIndexed { layer, neuronInLayer ->
+				Array(neuronInLayer) { index ->
+					val connectionsNextLayer = layers[max(layer - 1, 0)]
+					Neuron(connectionsNextLayer, randomSequence(seed * (997 * index)))
 				}
-				neurons
-
 			}
-			.toList()
+			.map { it.toMutableList() }
 }
-
-private fun generateSeed(): Long = SecureRandom().nextLong()
