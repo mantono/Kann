@@ -1,7 +1,9 @@
 package com.mantono.kann.ga
 
 import com.mantono.kann.consume
+import com.mantono.kann.randomSequence
 import com.mantono.kann.sigmoid
+import kotlin.math.max
 
 data class Neuron(
 		val weights: Array<Double>,
@@ -27,5 +29,18 @@ data class Neuron(
 				.sum() + bias
 
 		return function(weightedInputs)
+	}
+
+	fun mutate(constraints: ClosedFloatingPointRange<Double>): Neuron
+	{
+		val constrainedSequence = randomSequence(weights[weights.lastIndex].toRawBits())
+				.map { it.coerceIn(constraints) }
+
+		val mutatedWeights: Array<Double> = weights
+				.map { it + constrainedSequence.first() }
+				.toTypedArray()
+
+		val mutatedBias: Double = bias + constrainedSequence.first()
+		return Neuron(mutatedWeights, mutatedBias, function)
 	}
 }

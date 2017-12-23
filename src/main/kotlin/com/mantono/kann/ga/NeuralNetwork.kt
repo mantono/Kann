@@ -30,6 +30,26 @@ data class NeuralNetwork(private val neurons: List<MutableList<Neuron>>)
 
 		return input(output, layer + 1)
 	}
+
+	fun mutate(mutatingFactor: Double = 10.0): NeuralNetwork
+	{
+		val b: Double = Math.abs(mutatingFactor) / 100
+		val constraints: ClosedFloatingPointRange<Double> = -b .. b
+		println(constraints)
+		val mutatedNeurons: List<MutableList<Neuron>> = neurons.map { layer ->
+			layer.map { it.mutate(constraints) }.toMutableList()
+		}
+				.toList()
+
+		return NeuralNetwork(mutatedNeurons)
+	}
+
+	override fun toString(): String
+	{
+		var layer: Int = 0
+		return neurons.joinToString(separator = "\n", prefix = "\n{\n", postfix = "\n}") { "\t${it.size}: $it" }
+	}
+
 }
 
 private fun listOfLayers(layers: IntArray, seed: Long): List<MutableList<Neuron>>
