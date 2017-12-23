@@ -1,5 +1,7 @@
 package com.mantono.kann.ga
 
+import com.mantono.kann.generateSeedFrom
+import com.mantono.kann.randomSeed
 import com.mantono.kann.randomSequence
 import kotlin.math.max
 
@@ -46,7 +48,6 @@ data class NeuralNetwork(private val neurons: List<MutableList<Neuron>>)
 
 	override fun toString(): String
 	{
-		var layer: Int = 0
 		return neurons.joinToString(separator = "\n", prefix = "\n{\n", postfix = "\n}") { "\t${it.size}: $it" }
 	}
 
@@ -55,10 +56,11 @@ data class NeuralNetwork(private val neurons: List<MutableList<Neuron>>)
 private fun listOfLayers(layers: IntArray, seed: Long): List<MutableList<Neuron>>
 {
 	return layers
-			.mapIndexed { layer, neuronInLayer ->
-				Array(neuronInLayer) { index ->
+			.mapIndexed { layer: Int, neuronInLayer: Int ->
+				Array(neuronInLayer) { index: Int ->
+					val uniqueSeed: Long = generateSeedFrom(seed, layer, neuronInLayer, index)
 					val connectionsNextLayer = layers[max(layer - 1, 0)]
-					Neuron(connectionsNextLayer, randomSequence(seed * (997 * index)))
+					Neuron(connectionsNextLayer, randomSequence(uniqueSeed))
 				}
 			}
 			.map { it.toMutableList() }
