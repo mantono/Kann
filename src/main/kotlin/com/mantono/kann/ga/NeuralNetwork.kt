@@ -110,14 +110,11 @@ data class NeuralNetwork(private val neurons: List<List<Neuron>>)
 		if(iterations == 0) return nn to 0
 
 		val resultOriginal: Double = evaluate(nn, data)
-		val resultAverageSquaredCost: Double = resultOriginal / data.size
-		val resultSlope: Double = averageSlope(nn, data)
+		val step: Double = averageSlope(nn, data) * 0.1
 
 		println(resultOriginal)
 
 		if(resultOriginal <= maxError) return nn to iterations
-
-		val step = resultSlope * (0.1)
 
 		val less: NeuralNetwork = nn.modifyInBounds(iterations, - step)
 		val more: NeuralNetwork = nn.modifyInBounds(iterations, step)
