@@ -37,6 +37,25 @@ class NeuralNetworkTest
 	}
 
 	@Test
+	fun trainSingleLayerSingleInputNetworkNonLinearFunctionTest()
+	{
+		val neuron = Neuron(arrayOf(0.25), 0.5) { it }
+		val nn = NeuralNetwork(listOf(listOf(neuron)))
+		val data = listOf(
+				TrainingData(1.0, 2.0),
+				TrainingData(2.0, 4.0),
+				TrainingData(4.0, 5.0)
+		)
+
+		val iterations = 100_000
+		val final = nn.train(data, iterations, 0.642858)
+		println(final.first)
+		println(iterations - final.second)
+
+		assertTrue(final.second > 0)
+	}
+
+	@Test
 	fun trainSingleLayerSingleInputNetworkExponentialFunctionTest()
 	{
 		val neuron = Neuron(arrayOf(0.25), 0.5) { Math.pow(it, 2.0) }

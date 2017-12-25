@@ -110,17 +110,17 @@ data class NeuralNetwork(private val neurons: List<List<Neuron>>)
 		if(iterations == 0) return nn to 0
 
 		val resultOriginal: Double = evaluate(nn, data)
+		val resultAverageSquaredCost: Double = resultOriginal / data.size
+		val resultSlope: Double = averageSlope(nn, data)
 
 		println(resultOriginal)
 
 		if(resultOriginal <= maxError) return nn to iterations
 
-		val primary = nn.modifyBias(iterations, 0.001)
-		val resultPrimary = evaluate(primary, data)
-		val step = (resultPrimary - resultOriginal) / 0.001
+		val step = resultSlope * (0.1)
 
-		val less: NeuralNetwork = nn.modifyInBounds(iterations, - step * 0.001)
-		val more: NeuralNetwork = nn.modifyInBounds(iterations, step * 0.001)
+		val less: NeuralNetwork = nn.modifyInBounds(iterations, - step)
+		val more: NeuralNetwork = nn.modifyInBounds(iterations, step)
 
 		val resultLess = evaluate(less, data)
 		val resultMore = evaluate(more, data)
@@ -161,7 +161,7 @@ fun evaluate(n: NeuralNetwork, data: Collection<TrainingData>): Double
 				ResultData(output, trainingEntry.output)
 			}
 			.map { it.squaredError }
-			.average()
+			.sum()
 }
 
 fun averageSlope(n: NeuralNetwork, data: Collection<TrainingData>): Double
