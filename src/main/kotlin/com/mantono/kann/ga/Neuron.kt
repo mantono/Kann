@@ -10,6 +10,7 @@ data class Neuron(
 		val bias: Double = 0.0,
 		val function: (Double) -> Double = ::sigmoid)
 {
+	val size: Int = weights.size
 
 	constructor(
 			connections: Int,
@@ -18,6 +19,13 @@ data class Neuron(
 			function: (Double) -> Double = ::sigmoid
 	            ): this(weightGenerator.consume(connections), bias, function)
 
+	operator fun get(i: Int): Double = weights[i]
+	operator fun set(i: Int, weight: Double): Neuron
+	{
+		val newWeights = weights.copyOf()
+		newWeights[i] = weight
+		return Neuron(newWeights, bias, function)
+	}
 
 	fun feedInput(inputs: Array<Double>): Double
 	{
@@ -31,16 +39,33 @@ data class Neuron(
 		return function(weightedInputs)
 	}
 
-	fun mutate(constraints: ClosedFloatingPointRange<Double>): Neuron
+	fun mutate(mutationFactor: Double): Neuron
 	{
+		val b: Double = Math.abs(mutationFactor)
+		val constraints: ClosedFloatingPointRange<Double> = -b .. b
+
+		if(constraints.isEmpty())
+			throw IllegalStateException("Invalid range: $constraints")
+
 		val constrainedSequence = randomSequence(weights[weights.lastIndex].toRawBits())
+				.map { it * (mutationFactor * 10)}
 				.map { it.coerceIn(constraints) }
 
+		val mutations: Array<Double> = constrainedSequence.take(weights.size).toList().toTypedArray()
+
 		val mutatedWeights: Array<Double> = weights
-				.map { it + constrainedSequence.first() }
+				.mapIndexed { index, weight -> weight + mutations[index] }
 				.toTypedArray()
 
 		val mutatedBias: Double = bias + constrainedSequence.first()
 		return Neuron(mutatedWeights, mutatedBias, function)
+	}
+
+	override fun hashCode(): Int
+	{
+		return weights.asSequence()
+				.map { it.toRawBits() }
+				.reduce { acc, w -> acc xor w }
+				.toInt()
 	}
 }
