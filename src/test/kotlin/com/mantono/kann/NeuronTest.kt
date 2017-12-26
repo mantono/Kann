@@ -9,8 +9,8 @@ class NeuronTest
 	@Test
 	fun testMutation()
 	{
-		val n = Neuron(arrayOf(1.0, 2.0, 3.0))
+		val n = Neuron(listOf(1.0, 2.0, 3.0))
 		val a = n.mutate(0.1)
-		assertNotEquals(n.weights, a.weights)
+		assertNotEquals(n.weights(), a.weights())
 	}
 }

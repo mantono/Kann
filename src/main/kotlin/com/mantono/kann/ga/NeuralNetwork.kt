@@ -40,7 +40,7 @@ data class NeuralNetwork(private val neurons: List<List<Neuron>>)
 
 	private fun modifyWeight(index: Int, change: Double): NeuralNetwork
 	{
-		val layerIndex = (index * 7) % size
+		val layerIndex = (index * 7) % neurons.size
 		val layer: List<Neuron> = this[layerIndex]
 		val neuronIndex: Int = (index * 11) % layer.size
 		val neuron: Neuron = layer[neuronIndex]
@@ -58,7 +58,7 @@ data class NeuralNetwork(private val neurons: List<List<Neuron>>)
 
 	private fun modifyBias(index: Int, change: Double): NeuralNetwork
 	{
-		val layerIndex = (index * 7) % size
+		val layerIndex = (index * 7) % neurons.size
 		val layer: List<Neuron> = this[layerIndex]
 		val neuronIndex: Int = (index * 11) % layer.size
 		val neuron: Neuron = layer[neuronIndex]
@@ -67,7 +67,7 @@ data class NeuralNetwork(private val neurons: List<List<Neuron>>)
 
 		val newLayers: MutableList<MutableList<Neuron>> = neurons.map { it.toMutableList() }.toMutableList()
 		val newBias: Double = current + change
-		val newNeuron = Neuron(neuron.weights, newBias, neuron.function)
+		val newNeuron = Neuron(neuron.weights().toMutableList(), newBias, neuron.function)
 		newLayers[layerIndex][neuronIndex] = newNeuron
 
 		return NeuralNetwork(newLayers)
@@ -104,13 +104,14 @@ data class NeuralNetwork(private val neurons: List<List<Neuron>>)
 			data: Collection<TrainingData>,
 			iterations: Int = 1000,
 			maxError: Double = 0.1,
-			nn: NeuralNetwork = this
+			nn: NeuralNetwork = this,
+			attempts: Int = 0
 	): Pair<NeuralNetwork, Int>
 	{
 		if(iterations == 0) return nn to 0
 
 		val resultOriginal: Double = evaluate(nn, data)
-		val step: Double = averageSlope(nn, data) * 0.1
+		val step: Double = averageSlope(nn, data) * 10 / (1 + attempts * 2)
 
 		println(resultOriginal)
 
@@ -126,13 +127,17 @@ data class NeuralNetwork(private val neurons: List<List<Neuron>>)
 				resultOriginal to nn,
 				resultLess to less,
 				resultMore to more
-
 		)
 				.sortedBy { it.first }
 				.map { it.second }
 				.first()
 
-		return train(data, iterations - 1, maxError, bestFit)
+		return when(bestFit === nn)
+		{
+			true -> train(data, iterations - 1, maxError, bestFit, attempts + 1)
+			false -> train(data, iterations - 1, maxError, bestFit, 0)
+		}
+		//return train(data, iterations - 1, maxError, bestFit, attempts)
 	}
 
 	override fun toString(): String
@@ -183,4 +188,9 @@ private fun listOfLayers(layers: IntArray, seed: Long): List<MutableList<Neuron>
 				}
 			}
 			.map { it.toMutableList() }
+}
+
+fun layerOf(vararg funcs: (Double) -> Double): List<Neuron>
+{
+	return funcs.map { Neuron(function = it) }.toList()
 }

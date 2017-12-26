@@ -16,7 +16,7 @@ data class ResultData(val predicted: Array<Double>, val target: Array<Double>)
 	init
 	{
 		if(predicted.size != target.size)
-			throw IllegalArgumentException()
+			throw IllegalArgumentException("Training data indicates ${target.size} output nodes, but got ${predicted.size} outputs. Check that the amount of output nodes are correct.")
 	}
 
 	constructor(predicted: Double, target: Double): this(arrayOf(predicted), arrayOf(target))

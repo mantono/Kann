@@ -44,7 +44,7 @@ fun generateWeights(numberOfWeights: Int, seed: Long): Array<Double> = randomSeq
 			.toList()
 			.toTypedArray()
 
-fun Sequence<Double>.consume(n: Int): Array<Double> = this.take(n).toList().toTypedArray()
+fun Sequence<Double>.consume(n: Int): MutableList<Double> = this.take(n).toMutableList()
 
 fun gaussian(seed: Long): Double = randomSequence(seed).first()
 

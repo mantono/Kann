@@ -5,38 +5,60 @@ import com.mantono.kann.randomSequence
 import com.mantono.kann.sigmoid
 import kotlin.math.max
 
-data class Neuron(
-		val weights: Array<Double>,
+class Neuron(
+		weights: List<Double> = emptyList(),
 		val bias: Double = 0.0,
 		val function: (Double) -> Double = ::sigmoid)
 {
-	val size: Int = weights.size
+	private val weights: MutableList<Double> = ArrayList(weights)
+	val size: Int get() = weights.size
 
 	constructor(
 			connections: Int,
 			weightGenerator: Sequence<Double>,
 			bias: Double = weightGenerator.first()/2,
 			function: (Double) -> Double = ::sigmoid
-	            ): this(weightGenerator.consume(connections), bias, function)
+	): this(weightGenerator.consume(connections), bias, function)
 
 	operator fun get(i: Int): Double = weights[i]
 	operator fun set(i: Int, weight: Double): Neuron
 	{
-		val newWeights = weights.copyOf()
+		val newWeights = ArrayList(weights)
 		newWeights[i] = weight
 		return Neuron(newWeights, bias, function)
 	}
 
+	fun weights(): List<Double> = weights.toList()
+
 	fun feedInput(inputs: Array<Double>): Double
 	{
-		if(inputs.size != weights.size)
-			throw IllegalStateException("Trying to add input of size ${inputs.size} when having ${weights.size} weights")
+		verifySize(inputs.size)
 
 		val weightedInputs: Double = inputs.asSequence()
 				.mapIndexed { index: Int, input: Double -> weights[index] * input }
 				.sum() + bias
 
 		return function(weightedInputs)
+	}
+
+	private fun verifySize(inputs: Int): Boolean
+	{
+		if(weights.size < inputs)
+		{
+			val missing = inputs - weights.size
+			randomSequence(inputs.toLong() + weights.sum().toRawBits())
+					.take(missing)
+					.forEach { weights.add(it) }
+			return true
+		}
+		else if(weights.size > inputs)
+		{
+			val extra = weights.size - inputs
+			for(i in 0 until extra)
+				weights.removeAt(0)
+			return true
+		}
+		return false
 	}
 
 	fun mutate(mutationFactor: Double): Neuron
@@ -53,9 +75,9 @@ data class Neuron(
 
 		val mutations: Array<Double> = constrainedSequence.take(weights.size).toList().toTypedArray()
 
-		val mutatedWeights: Array<Double> = weights
+		val mutatedWeights: MutableList<Double> = weights
 				.mapIndexed { index, weight -> weight + mutations[index] }
-				.toTypedArray()
+				.toMutableList()
 
 		val mutatedBias: Double = bias + constrainedSequence.first()
 		return Neuron(mutatedWeights, mutatedBias, function)
@@ -67,5 +89,10 @@ data class Neuron(
 				.map { it.toRawBits() }
 				.reduce { acc, w -> acc xor w }
 				.toInt()
+	}
+
+	override fun toString(): String
+	{
+		return weights.joinToString(prefix = "w: ", separator = "; ") + ", bias $bias"
 	}
 }
