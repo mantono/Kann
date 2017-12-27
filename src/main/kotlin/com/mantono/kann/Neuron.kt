@@ -1,9 +1,4 @@
-package com.mantono.kann.ga
-
-import com.mantono.kann.consume
-import com.mantono.kann.randomSequence
-import com.mantono.kann.sigmoid
-import kotlin.math.max
+package com.mantono.kann
 
 class Neuron(
 		weights: List<Double> = emptyList(),
@@ -19,6 +14,22 @@ class Neuron(
 			bias: Double = weightGenerator.first()/2,
 			function: (Double) -> Double = ::sigmoid
 	): this(weightGenerator.consume(connections), bias, function)
+
+	override fun toString(): String
+	{
+		val str = StringBuilder("Neuron(")
+		if(weights.isNotEmpty())
+		{
+			str.append("weights = listOf(")
+			str.append(weights.joinToString(separator = ", "))
+			str.append("), ")
+		}
+		str.append("bias = $bias,")
+		str.append(" function = ::${function.javaClass.kotlin.simpleName}")
+		str.append(")")
+		return str.toString()
+		//return weights.joinToString(prefix = "w: ", separator = "; ") + ", bias $bias"
+	}
 
 	operator fun get(i: Int): Double = weights[i]
 	operator fun set(i: Int, weight: Double): Neuron
@@ -89,10 +100,5 @@ class Neuron(
 				.map { it.toRawBits() }
 				.reduce { acc, w -> acc xor w }
 				.toInt()
-	}
-
-	override fun toString(): String
-	{
-		return weights.joinToString(prefix = "w: ", separator = "; ") + ", bias $bias"
 	}
 }

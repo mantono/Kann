@@ -1,6 +1,5 @@
 package com.mantono.kann
 
-import com.mantono.kann.ga.Neuron
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Test
 

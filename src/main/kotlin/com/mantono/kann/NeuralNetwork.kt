@@ -1,11 +1,5 @@
-package com.mantono.kann.ga
+package com.mantono.kann
 
-import com.mantono.kann.averageOfSquaredErrorCost
-import com.mantono.kann.generateSeedFrom
-import com.mantono.kann.randomSeed
-import com.mantono.kann.randomSequence
-import com.mantono.kann.slope
-import com.mantono.kann.transform
 import kotlin.math.max
 
 data class NeuralNetwork(private val neurons: List<List<Neuron>>)
@@ -113,7 +107,8 @@ data class NeuralNetwork(private val neurons: List<List<Neuron>>)
 		val resultOriginal: Double = evaluate(nn, data)
 		val step: Double = averageSlope(nn, data) * 10 / (1 + attempts * 2)
 
-		println(resultOriginal)
+		if(attempts % 100 == 0)
+			println(resultOriginal)
 
 		if(resultOriginal <= maxError) return nn to iterations
 
@@ -137,12 +132,6 @@ data class NeuralNetwork(private val neurons: List<List<Neuron>>)
 			true -> train(data, iterations - 1, maxError, bestFit, attempts + 1)
 			false -> train(data, iterations - 1, maxError, bestFit, 0)
 		}
-		//return train(data, iterations - 1, maxError, bestFit, attempts)
-	}
-
-	override fun toString(): String
-	{
-		return neurons.joinToString(separator = "\n", prefix = "\n{\n", postfix = "\n}") { "\t${it.size}: $it" }
 	}
 
 	override fun hashCode(): Int
@@ -153,7 +142,23 @@ data class NeuralNetwork(private val neurons: List<List<Neuron>>)
 		}
 				.sum()
 	}
+
+	override fun toString(): String
+	{
+		val str = StringBuilder("network {\n")
+		str.append("\tlistOf(\n")
+		neurons.forEach {list ->
+			val n = list.joinToString(prefix = "\t\tlistOf(", separator = ", ", postfix = "),\n")
+			str.append(n)
+		}
+		str.delete(str.lastIndex-1, str.lastIndex)
+		str.append("\t)")
+		str.append("\n}")
+		return str.toString()
+	}
 }
+
+fun network(layers: () -> List<List<Neuron>>): NeuralNetwork = NeuralNetwork(neurons = layers.invoke())
 
 fun evaluate(n: NeuralNetwork, data: Collection<TrainingData>): Double
 {

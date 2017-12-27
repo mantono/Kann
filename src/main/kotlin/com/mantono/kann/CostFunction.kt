@@ -1,7 +1,5 @@
 package com.mantono.kann
 
-import com.mantono.kann.ga.ResultData
-
 fun squaredErrorCost(prediction: Double, target: Double): Double
 {
 	val delta: Double = prediction - target

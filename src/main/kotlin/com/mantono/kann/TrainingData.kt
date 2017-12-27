@@ -1,8 +1,4 @@
-package com.mantono.kann.ga
-
-import com.mantono.kann.squaredErrorCost
-import com.mantono.kann.sumOfSquaredErrorCost
-import com.mantono.kann.transform
+package com.mantono.kann
 
 data class TrainingData(val input: Array<Double>, val output: Array<Double>)
 {
@@ -22,5 +18,5 @@ data class ResultData(val predicted: Array<Double>, val target: Array<Double>)
 	constructor(predicted: Double, target: Double): this(arrayOf(predicted), arrayOf(target))
 
 	val squaredError: Double = squaredErrorCost(predicted, target)
-	val slope: Double = transform(predicted, target) {x, y -> com.mantono.kann.slope(x, y) }.sum()
+	val slope: Double = transform(predicted, target) {x, y -> slope(x, y) }.sum()
 }
