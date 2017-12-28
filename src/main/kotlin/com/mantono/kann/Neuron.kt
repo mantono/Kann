@@ -1,11 +1,10 @@
 package com.mantono.kann
 
-class Neuron(
-		weights: List<Double> = emptyList(),
+data class Neuron(
+		private val weights: MutableList<Double> = ArrayList(2),
 		val bias: Double = 0.0,
 		val function: (Double) -> Double = ::sigmoid)
 {
-	private val weights: MutableList<Double> = ArrayList(weights)
 	val size: Int get() = weights.size
 
 	constructor(
@@ -43,13 +42,16 @@ class Neuron(
 
 	fun feedInput(inputs: Array<Double>): Double
 	{
-		verifySize(inputs.size)
+		val weightedInputs: Double = weightedInput(inputs)
+		return function(weightedInputs)
+	}
 
-		val weightedInputs: Double = inputs.asSequence()
+	fun weightedInput(inputs: Array<Double>): Double
+	{
+		verifySize(inputs.size)
+		return inputs.asSequence()
 				.mapIndexed { index: Int, input: Double -> weights[index] * input }
 				.sum() + bias
-
-		return function(weightedInputs)
 	}
 
 	private fun verifySize(inputs: Int): Boolean
