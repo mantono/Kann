@@ -1,22 +1,33 @@
 package com.mantono.kann
 
-import kotlinx.coroutines.experimental.delay
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.math.max
 
 data class NeuralNetwork(
 		private val layers: MutableList<Int>,
 		private val weights: MutableList<Double>,
 		private val biases: MutableList<Double>,
-		private val functions: MutableList<(Double) -> Double>
+		private val functions: MutableList<(Double) -> Double> = Array(biases.size) { _ -> { x: Double -> sigmoid(x) } }.toMutableList()
 		)
 {
+	val size: Int get() = layers.sum()
+
 	constructor(vararg layers: Int, seed: Long = randomSeed()): this(
 			layers.toMutableList(),
 			initWeights(layers.toList(), seed),
 			initBiases(layers.toList(), seed),
 			initFunctions(layers.toList())
 	)
+
+	fun clone(): NeuralNetwork
+	{
+		val _layers: MutableList<Int> = ArrayList(layers)
+		val _weights: MutableList<Double> = ArrayList(weights)
+		val _biases: MutableList<Double> = ArrayList(biases)
+		val _functions: MutableList<(Double) -> Double> = ArrayList(functions)
+		return NeuralNetwork(_layers, _weights, _biases, _functions)
+	}
 
 	operator fun set(layer: Int, neuron: Int, func: (Double) -> Double)
 	{
@@ -107,52 +118,160 @@ data class NeuralNetwork(
 
 	fun weightsInLayer(layer: Int): Int = if (layer == 0) 1 else layers[layer - 1]
 
-	tailrec fun train(
+	tailrec fun trainBatch(
 			data: List<TrainingData>,
-			iterations: Int = 1000,
-			maxError: Double = 0.1
-	): Double
+			iterations: Int = 100_000,
+			maxError: Double = 0.1,
+			learningRate: Double = 0.5,
+			avgCost: Double = 1000.0,
+			nn: NeuralNetwork = this
+	): NeuralNetwork
+	{
+		val rand = Random()
+		val change: Double = learningRate * avgCost
+		val r: Int = rand.nextInt(nn.weights.size)
+		val nn1: Pair<Double, NeuralNetwork> = evolveBatch(nn, r, change, data)
+		val b: Int = ((r + 1) * iterations) % nn1.second.biases.size
+		val nn2: Pair<Double, NeuralNetwork> = evolveBatchBias(nn1.second, b, change, data)
+
+		if(iterations % 1000 == 0)
+			println("${iterations / 1000} -> $avgCost | LR: $learningRate")
+
+		if(avgCost <= maxError || iterations == 0)
+			return nn2.second
+
+		val newLearningRate: Double = (avgCost + rand.nextGaussian() / 5) / 2.0
+		return trainBatch(data, iterations - 1, maxError, newLearningRate, nn2.first, nn2.second)
+	}
+
+	tailrec fun trainStochastic(
+			data: List<TrainingData>,
+			iterations: Int = 100_000,
+			maxError: Double = 0.1,
+			learningRate: Double = 0.5,
+			globalMinimum: SortedMap<Double, NeuralNetwork> = TreeMap<Double, NeuralNetwork>(),
+			nn: NeuralNetwork = this
+	): NeuralNetwork
 	{
 		val dataPointIndex: Int = Random().nextInt(data.size)
 		val dataPoint: TrainingData = data[dataPointIndex]
-		val predicted: Array<Double> = input(dataPoint.input)
+		val predicted: Array<Double> = nn.input(dataPoint.input)
 		val result = ResultData(predicted, dataPoint.output)
-		val cost: Double = result.squaredError
 		val slope: Double = result.slope
-		val learningRate = 0.01
+		val change: Double = slope * learningRate
 
-		layers.mapIndexed { layer, size ->
-			(0 until size).map { neuron ->
-				val nFunc = function(layer, neuron)
-				val nWeights = weights(layer, neuron)
-				val nBias = bias(layer, neuron)
+		val i = (iterations * (dataPointIndex + 1)) % nn.weights.size
+		val nn1 = evolveStochastic(nn, i, change, dataPoint)
+		val b = (iterations * (dataPointIndex + 1)) % nn1.biases.size
+		val nn2 = evolveStochasticBias(nn, b, change, dataPoint)
 
-				val weightedInput: Double = weightedInput(dataPoint.input, nWeights, nBias)
-				val derivativeFunc: Double = derivative(weightedInput, nFunc)
-
-				nWeights.indices.map { index ->
-					dataPoint.input.map { d ->
-						val derivativeCostWeight: Double = slope * derivativeFunc * d
-						this[layer, neuron, index] += learningRate * derivativeCostWeight
-					}
-				}
-
-				val derivativeCostBias: Double = slope * derivativeFunc
-				this[layer, neuron] += learningRate * derivativeCostBias
-			}
-		}
-
-		if(iterations % 100 == 0)
+		return if(iterations % 1000 == 0)
 		{
-			val sumOfCost: Double = evaluate(this, data)
-			println(sumOfCost)
-			if(sumOfCost <= maxError || iterations == 0) return sumOfCost
+			val sumOfCost: Double = evaluate(nn1, data)
+			globalMinimum.put(sumOfCost, nn1)
+			val newLearningRate: Double = globalMinimum.firstKey() / 50.0
+
+			if(sumOfCost <= maxError || iterations == 0)
+				return globalMinimum[globalMinimum.firstKey()] ?: this
+
+			if(globalMinimum.size > 10)
+				globalMinimum.remove(globalMinimum.lastKey())
+
+			if(iterations % 100_000 == 0)
+				println("${iterations / 100_000} -> $sumOfCost / ${globalMinimum.firstKey()} | LR: $newLearningRate")
+
+			trainStochastic(data, iterations - 1, maxError, newLearningRate, globalMinimum, globalMinimum[globalMinimum.firstKey()] ?: nn2)
+		}
+		else
+		{
+			trainStochastic(data, iterations - 1, maxError, learningRate, globalMinimum, nn2)
 		}
 
-		Thread.sleep(10)
-
-		return train(data, iterations - 1, maxError)
 	}
+
+	private fun evolveStochastic(nn: NeuralNetwork, i: Int, change: Double, dp: TrainingData): NeuralNetwork
+	{
+		return mutilateWeights(nn, i, change)
+				.map { network ->
+					val result = ResultData(network.input(dp.input), dp.output)
+					result.squaredError to network
+				}
+				.best()
+	}
+
+	private fun evolveStochasticBias(nn: NeuralNetwork, i: Int, change: Double, dp: TrainingData): NeuralNetwork
+	{
+		return mutilateBias(nn, i, change)
+				.map { network ->
+					val result = ResultData(network.input(dp.input), dp.output)
+					result.squaredError to network
+				}
+				.best()
+	}
+
+	private fun evolveBatch(nn: NeuralNetwork, i: Int, change: Double, dp: List<TrainingData>): Pair<Double, NeuralNetwork>
+	{
+		return mutilateWeights(nn, i, change)
+				.map { network ->
+					val result = evaluate(network, dp)
+					result to network
+				}
+				.sortedBy { it.first }
+				.first()
+	}
+
+	private fun evolveBatchBias(nn: NeuralNetwork, i: Int, change: Double, dp: List<TrainingData>): Pair<Double, NeuralNetwork>
+	{
+		return mutilateBias(nn, i, change)
+				.map { network ->
+					val result = evaluate(network, dp)
+					result to network
+				}
+				.sortedBy { it.first }
+				.first()
+	}
+
+	private fun Sequence<Pair<Double, NeuralNetwork>>.best(): NeuralNetwork
+	{
+		return this
+				.sortedBy { it.first }
+				.map { it.second }
+				.first()
+	}
+
+	private fun mutilateWeights(nn: NeuralNetwork, i: Int, change: Double): Sequence<NeuralNetwork>
+	{
+		val less = nn.clone()
+		val more = nn.clone()
+		less.weights[i] = less.weights[i] - change
+		more.weights[i] = more.weights[i] + change
+		return sequenceOf(nn, less, more)
+	}
+
+	private fun mutilateBias(nn: NeuralNetwork, i: Int, change: Double): Sequence<NeuralNetwork>
+	{
+		val less = nn.clone()
+		val more = nn.clone()
+		less.biases[i] = less.biases[i] - change
+		more.biases[i] = more.biases[i] + change
+		return sequenceOf(nn, less, more)
+	}
+
+	override fun toString(): String
+	{
+		val str = StringBuilder()
+		str.append(layers.toString() + "\n")
+		str.append(weights.toString() + "\n")
+		str.append(biases.toString() + "\n")
+		return str.toString()
+	}
+}
+
+private fun MutableList<Double>.change(i: Int, e: Double)
+{
+	val current: Double = this[i]
+	val new: Double = current + e
+	this[i] = new
 }
 
 private fun initWeights(layers: List<Int>, seed: Long): MutableList<Double>
@@ -367,7 +486,7 @@ fun evaluate(n: NeuralNetwork, data: Collection<TrainingData>): Double
 				ResultData(output, trainingEntry.output)
 			}
 			.map { it.squaredError }
-			.sum()
+			.average()
 }
 
 fun averageSlope(n: NeuralNetwork, data: Collection<TrainingData>): Double
